@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💰 Financeiro Pessoal</title>
+    <meta name="description" content="Controle financeiro pessoal com dashboard, gastos e metas">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <script>if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }</script>
+</head>
+
+<body>
+
+    <!-- ============================================= -->
+    <!-- TELA DE PERFIS -->
+    <!-- ============================================= -->
+    <div id="profileScreen" class="profile-screen">
+        <div class="profile-container">
+            <div class="profile-header">
+                <div class="profile-logo">💰</div>
+                <h1>Financeiro Pessoal</h1>
+                <p>Selecione seu perfil para continuar</p>
+            </div>
+            <div id="profileList" class="profile-list">
+                <!-- Profiles rendered by JS -->
+            </div>
+            <button class="btn btn-outline profile-add-btn" onclick="App.showCreateProfile()">
+                <span>+</span> Criar Novo Perfil
+            </button>
+        </div>
+
+        <!-- Criar perfil modal -->
+        <div id="createProfileModal" class="modal-overlay">
+            <div class="modal-content" style="max-width:420px">
+                <div class="modal-header">
+                    <h2>Novo Perfil</h2>
+                    <button class="modal-close" onclick="App.closeCreateProfile()">✕</button>
+                </div>
+                <form id="createProfileForm" onsubmit="App.createProfile(event)">
+                    <div class="form-group">
+                        <label>Nome</label>
+                        <input type="text" id="profileName" placeholder="Ex: Alisson" required>
+                    </div>
+                    <div class="form-group">
+                        <label>PIN (Opcional)</label>
+                        <input type="password" id="profilePin" placeholder="****" maxlength="4" pattern="\d*"
+                            inputmode="numeric">
+                    </div>
+                    <div class="form-group">
+                        <label>Avatar</label>
+                        <div class="avatar-picker" id="avatarPicker">
+                            <button type="button" class="avatar-option selected" data-avatar="😎">😎</button>
+                            <button type="button" class="avatar-option" data-avatar="👤">👤</button>
+                            <button type="button" class="avatar-option" data-avatar="🧑‍💻">🧑‍💻</button>
+                            <button type="button" class="avatar-option" data-avatar="👩">👩</button>
+                            <button type="button" class="avatar-option" data-avatar="👨">👨</button>
+                            <button type="button" class="avatar-option" data-avatar="🦊">🦊</button>
+                            <button type="button" class="avatar-option" data-avatar="🐺">🐺</button>
+                            <button type="button" class="avatar-option" data-avatar="🦁">🦁</button>
+                            <button type="button" class="avatar-option" data-avatar="💎">💎</button>
+                            <button type="button" class="avatar-option" data-avatar="⭐">⭐</button>
+                            <button type="button" class="avatar-option" data-avatar="🔥">🔥</button>
+                            <button type="button" class="avatar-option" data-avatar="💰">💰</button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width:100%">Criar Perfil</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- APP PRINCIPAL -->
+    <!-- ============================================= -->
+    <div id="pinLoginModal" class="modal-overlay">
+        <div class="modal-content" style="max-width:320px; text-align:center">
+            <div class="modal-header">
+                <h2>🔐 Senha do Perfil</h2>
+                <button class="modal-close" onclick="App.closePinModal()">✕</button>
+            </div>
+            <form onsubmit="App.verifyPin(event)">
+                <p id="pinPromptName" style="margin-bottom:15px; color:var(--text-secondary)">Digite o PIN para entrar
+                </p>
+                <div class="form-group">
+                    <input type="password" id="loginPin" placeholder="****" maxlength="4" pattern="\d*"
+                        inputmode="numeric" required style="text-align:center; font-size:24px; letter-spacing:8px">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%">Entrar</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="appContainer" class="app-container" style="display:none">
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-logo">💰</span>
+                <h2>Financeiro</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-page="dashboard" onclick="App.navigate('dashboard')">
+                    <span class="nav-icon">📊</span><span class="nav-text">Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" data-page="income" onclick="App.navigate('income')">
+                    <span class="nav-icon">💵</span><span class="nav-text">Registrar Renda</span>
+                </a>
+                <a href="#" class="nav-item" data-page="expenses" onclick="App.navigate('expenses')">
+                    <span class="nav-icon">🧾</span><span class="nav-text">Registrar Gasto</span>
+                </a>
+                <a href="#" class="nav-item" data-page="goals" onclick="App.navigate('goals')">
+                    <span class="nav-icon">🎯</span><span class="nav-text">Metas</span>
+                </a>
+                <a href="#" class="nav-item" data-page="history" onclick="App.navigate('history')">
+                    <span class="nav-icon">📋</span><span class="nav-text">Histórico</span>
+                </a>
+                <a href="#" class="nav-item" data-page="reports" onclick="App.navigate('reports')">
+                    <span class="nav-icon">📈</span><span class="nav-text">Relatórios</span>
+                </a>
+                <a href="#" class="nav-item" data-page="settings" onclick="App.navigate('settings')">
+                    <span class="nav-icon">⚙️</span><span class="nav-text">Configurações</span>
+                </a>
+                <a href="#" class="nav-item" id="installAppBtn" onclick="App.installPWA()">
+                    <span class="nav-icon">📱</span><span class="nav-text">Instalar App</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info" id="userInfo">
+                    <span class="user-avatar" id="userAvatar">👤</span>
+                    <span class="user-name" id="userName">Usuário</span>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="App.logout()" title="Trocar Perfil">🔄 Trocar</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <header class="top-bar">
+                <button class="menu-toggle" onclick="App.toggleSidebar()">☰</button>
+                <h1 id="pageTitle">Dashboard</h1>
+                <div class="top-actions">
+                    <button class="theme-toggle" onclick="App.toggleTheme()" title="Alternar tema">🌙</button>
+                </div>
+            </header>
+
+            <!-- ======= DASHBOARD ======= -->
+            <section id="page-dashboard" class="page active">
+                <div class="summary-cards">
+                    <div class="summary-card income">
+                        <div class="card-icon">💵</div>
+                        <div class="card-info">
+                            <span class="card-label">Renda do Mês</span>
+                            <span class="card-value" id="incMonth">R$ 0,00</span>
+                        </div>
+                    </div>
+                    <div class="summary-card expense">
+                        <div class="card-icon">🧾</div>
+                        <div class="card-info">
+                            <span class="card-label">Gastos do Mês</span>
+                            <span class="card-value" id="expMonth">R$ 0,00</span>
+                        </div>
+                    </div>
+                    <div class="summary-card balance">
+                        <div class="card-icon">📊</div>
+                        <div class="card-info">
+                            <span class="card-label">Saldo do Mês</span>
+                            <span class="card-value" id="balMonth">R$ 0,00</span>
+                        </div>
+                    </div>
+                    <div class="summary-card total">
+                        <div class="card-icon">🏦</div>
+                        <div class="card-info">
+                            <span class="card-label">Saldo Total</span>
+                            <span class="card-value" id="balTotal">R$ 0,00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts-row">
+                    <div class="chart-card">
+                        <h3>📈 Renda vs Gastos (12 meses)</h3>
+                        <canvas id="chartEvolution"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>🧾 Gastos por Categoria</h3>
+                        <canvas id="chartCategories"></canvas>
+                    </div>
+                </div>
+
+                <div class="charts-row">
+                    <div class="chart-card">
+                        <h3>💵 Renda por Fonte</h3>
+                        <canvas id="chartSources"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>🎯 Metas Ativas</h3>
+                        <div id="dashGoalsList" class="dash-goals-list">
+                            <p class="text-muted">Nenhuma meta ativa</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="recent-section">
+                    <div class="recent-card">
+                        <h3>💵 Últimas Rendas</h3>
+                        <div id="recentIncomeList" class="recent-list">
+                            <p class="text-muted">Nenhum registro</p>
+                        </div>
+                    </div>
+                    <div class="recent-card">
+                        <h3>🧾 Últimos Gastos</h3>
+                        <div id="recentExpenseList" class="recent-list">
+                            <p class="text-muted">Nenhum registro</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ======= INCOME ======= -->
+            <section id="page-income" class="page">
+                <div class="page-header">
+                    <h2>💵 Registrar Renda</h2>
+                </div>
+                <div class="form-card">
+                    <form id="incomeForm" onsubmit="App.createIncome(event)">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Valor (R$)</label>
+                                <input type="number" id="incAmount" step="0.01" min="0.01" placeholder="0,00" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Data</label>
+                                <input type="date" id="incDate" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Fonte</label>
+                                <select id="incSource">
+                                    <option value="">Selecione...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Tipo</label>
+                                <select id="incType">
+                                    <option value="entrada">Entrada</option>
+                                    <option value="freelance">Freelance</option>
+                                    <option value="investimento">Investimento</option>
+                                    <option value="outros">Outros</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Observação</label>
+                            <textarea id="incObs" rows="2" placeholder="Descrição opcional..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Tags</label>
+                            <input type="text" id="incTags" placeholder="ex: ifood, pixbanco">
+                        </div>
+                        <button type="submit" class="btn btn-primary">💵 Registrar Renda</button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- ======= EXPENSES ======= -->
+            <section id="page-expenses" class="page">
+                <div class="page-header">
+                    <h2>🧾 Registrar Gasto</h2>
+                </div>
+
+                <div class="form-card">
+                    <form id="expenseForm" onsubmit="App.createExpense(event)">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Valor (R$)</label>
+                                <input type="number" id="expAmount" step="0.01" min="0.01" placeholder="0,00" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Data</label>
+                                <input type="date" id="expDate" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Categoria</label>
+                                <select id="expCategory">
+                                    <option value="">Selecione...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Observação</label>
+                            <textarea id="expObs" rows="2" placeholder="Ex: Compra mensal no mercado..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Tags</label>
+                            <input type="text" id="expTags" placeholder="ex: supermercado, gasolina">
+                        </div>
+                        <button type="submit" class="btn btn-danger">🧾 Registrar Gasto</button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- ======= GOALS ======= -->
+            <section id="page-goals" class="page">
+                <div class="page-header">
+                    <h2>🎯 Metas Financeiras</h2>
+                    <button class="btn btn-primary" onclick="App.showGoalModal()">+ Nova Meta</button>
+                </div>
+                <div id="goalsList" class="goals-grid"></div>
+            </section>
+
+            <!-- ======= HISTORY ======= -->
+            <section id="page-history" class="page">
+                <div class="page-header">
+                    <h2>📋 Histórico Financeiro</h2>
+                </div>
+                <div class="tab-bar">
+                    <button class="tab-btn active" onclick="App.switchHistoryTab('income')">💵 Rendas</button>
+                    <button class="tab-btn" onclick="App.switchHistoryTab('expenses')">🧾 Gastos</button>
+                    <button class="tab-btn" onclick="App.switchHistoryTab('report')">📊 Relatório</button>
+                </div>
+
+                <!-- Conteúdo de Rendas/Gastos -->
+                <div id="historyContent">
+                    <div class="history-filters">
+                        <input type="text" id="histSearch" placeholder="🔍 Buscar..." oninput="App.loadHistory()">
+                        <input type="date" id="histFrom" onchange="App.loadHistory()">
+                        <input type="date" id="histTo" onchange="App.loadHistory()">
+                        <select id="histFilter" onchange="App.loadHistory()">
+                            <option value="">Todas as fontes/categorias</option>
+                        </select>
+                        <button class="btn btn-outline btn-sm" onclick="App.exportHistory()">📥 Exportar CSV</button>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="data-table" id="historyTable">
+                            <thead>
+                                <tr id="historyHead"></tr>
+                            </thead>
+                            <tbody id="historyBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination" id="historyPagination"></div>
+                </div>
+
+                <!-- Conteúdo do Relatório de Gastos -->
+                <div id="reportContent" style="display:none">
+                    <!-- Filtro de datas -->
+                    <div
+                        style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:20px;padding:16px;background:var(--bg-card);border-radius:var(--radius);border:1px solid var(--border-color)">
+                        <span style="font-weight:600">📅 Período:</span>
+                        <input type="date" id="expReportFrom"
+                            style="padding:8px 12px;background:var(--bg-input);border:1px solid var(--border-color);border-radius:var(--radius-xs);color:var(--text-primary);font-family:var(--font);flex:1;min-width:140px">
+                        <span class="text-muted">até</span>
+                        <input type="date" id="expReportTo"
+                            style="padding:8px 12px;background:var(--bg-input);border:1px solid var(--border-color);border-radius:var(--radius-xs);color:var(--text-primary);font-family:var(--font);flex:1;min-width:140px">
+                        <button class="btn btn-primary" onclick="App.loadExpenseSummary()">🔍 Buscar</button>
+                        <button class="btn btn-outline" onclick="App.downloadExpenseReportPDF()" id="btnDownloadPDF"
+                            style="display:none">📥 Baixar PDF</button>
+                    </div>
+
+                    <!-- Cards de resumo -->
+                    <div class="summary-cards" id="expReportCards" style="margin-bottom:20px">
+                        <div class="summary-card expense">
+                            <div class="card-icon">💸</div>
+                            <div class="card-info">
+                                <span class="card-label">Total no Período</span>
+                                <span class="card-value" id="rptTotal">R$ 0,00</span>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="card-icon">📊</div>
+                            <div class="card-info">
+                                <span class="card-label">Média por Mês</span>
+                                <span class="card-value" id="rptAvgMonth">R$ 0,00</span>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="card-icon">🔥</div>
+                            <div class="card-info">
+                                <span class="card-label">Mês Mais Caro</span>
+                                <span class="card-value" id="rptWorstMonth">—</span>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="card-icon">🧾</div>
+                            <div class="card-info">
+                                <span class="card-label">Total de Registros</span>
+                                <span class="card-value" id="rptCount">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gráfico -->
+                    <div class="chart-card" style="margin-bottom:20px">
+                        <h3>📈 Evolução dos Gastos</h3>
+                        <canvas id="chartExpMonthly"></canvas>
+                    </div>
+
+                    <!-- Tabela detalhada -->
+                    <div class="chart-card">
+                        <h3>📋 Detalhamento por Mês</h3>
+                        <div id="expReportBody" style="margin-top:12px">
+                            <p class="text-muted" style="text-align:center;padding:20px">Selecione o período e clique em
+                                Buscar</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ======= REPORTS ======= -->
+            <section id="page-reports" class="page">
+                <div class="page-header">
+                    <h2>📈 Relatórios</h2>
+                </div>
+                <div class="report-controls">
+                    <select id="reportType" onchange="App.loadReports()">
+                        <option value="monthly">Relatório Mensal</option>
+                        <option value="annual">Relatório Anual</option>
+                    </select>
+                    <select id="reportMonth" onchange="App.loadReports()">
+                        <option value="1">Janeiro</option>
+                        <option value="2">Fevereiro</option>
+                        <option value="3">Março</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Maio</option>
+                        <option value="6">Junho</option>
+                        <option value="7">Julho</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Setembro</option>
+                        <option value="10">Outubro</option>
+                        <option value="11">Novembro</option>
+                        <option value="12">Dezembro</option>
+                    </select>
+                    <select id="reportYear" onchange="App.loadReports()"></select>
+                </div>
+                <div class="report-summary" id="reportSummary"></div>
+                <div class="charts-row">
+                    <div class="chart-card">
+                        <h3>📈 Evolução Diária</h3><canvas id="chartReportDaily"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>📊 Renda vs Gastos</h3><canvas id="chartReportComparison"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ======= SETTINGS ======= -->
+            <section id="page-settings" class="page">
+                <div class="page-header">
+                    <h2>⚙️ Configurações</h2>
+                </div>
+                <div class="settings-grid">
+                    <div class="settings-card">
+                        <h3>🎨 Tema</h3>
+                        <p>Escolha entre modo claro e escuro</p>
+                        <button class="btn btn-outline" onclick="App.toggleTheme()">Alternar Tema</button>
+                    </div>
+                    <div class="settings-card">
+                        <h3>💵 Fontes de Renda</h3>
+                        <div id="sourcesList" class="settings-list"></div>
+                        <div class="settings-add-row">
+                            <input type="text" id="newSourceName" placeholder="Nova fonte...">
+                            <button class="btn btn-primary btn-sm" onclick="App.addSource()">+</button>
+                        </div>
+                    </div>
+                    <div class="settings-card">
+                        <h3>🧾 Categorias de Gasto</h3>
+                        <div id="categoriesList" class="settings-list"></div>
+                        <div class="settings-add-row">
+                            <input type="text" id="newCategoryName" placeholder="Nova categoria...">
+                            <button class="btn btn-primary btn-sm" onclick="App.addCategory()">+</button>
+                        </div>
+                    </div>
+                    <div class="settings-card">
+                        <h3>👤 Perfil Atual</h3>
+                        <p id="settingsProfileInfo">—</p>
+                        <button class="btn btn-outline" onclick="App.logout()">🔄 Trocar Perfil</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- ======= GOAL MODAL ======= -->
+    <div id="goalModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🎯 Nova Meta</h2>
+                <button class="modal-close" onclick="App.closeGoalModal()">✕</button>
+            </div>
+            <form id="createGoalForm" onsubmit="App.createGoal(event)">
+                <div class="form-group">
+                    <label>Título</label>
+                    <input type="text" id="goalTitle" placeholder="Ex: Comprar um carro" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Valor da Meta (R$)</label>
+                        <input type="number" id="goalTarget" step="0.01" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Prazo</label>
+                        <input type="date" id="goalDeadline">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Ícone</label>
+                        <select id="goalIcon">
+                            <option value="🎯">🎯 Alvo</option>
+                            <option value="🚗">🚗 Carro</option>
+                            <option value="🏠">🏠 Casa</option>
+                            <option value="💻">💻 Tecnologia</option>
+                            <option value="✈️">✈️ Viagem</option>
+                            <option value="📱">📱 Celular</option>
+                            <option value="🎮">🎮 Games</option>
+                            <option value="💰">💰 Poupança</option>
+                            <option value="🎓">🎓 Estudos</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Cor</label>
+                        <input type="color" id="goalColor" value="#6366f1">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%">Criar Meta</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/charts.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>
